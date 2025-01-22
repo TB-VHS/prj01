@@ -4,6 +4,7 @@ dotenv.config();
 import util from 'util'
 import express, { Express, Request, Response } from "express";
 import bodyParser from 'body-parser'
+import cookieParser from 'cookie-parser'
 import { engine } from 'express-handlebars';
 
 import { PrismaClient } from '@prisma/client'
@@ -17,6 +18,7 @@ app.set('view engine', 'handlebars');
 app.set('views', 'views');
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
+app.use( cookieParser() )
 
 const port = process.env.PORT || 3000;
 
@@ -38,20 +40,24 @@ app.post( '/user'
         }
     });
     console.log( user )
-    console.log( `req.query: ${ util.inspect( req.query )}` )
-    res.send( user?.name )
-    // res.redirect( '/user' )
+    if( user === null ){
+        res.redirect( '/search' )
+    }
+    else{ // if user not null
+        res.cookie( 'username', user.name, { maxAge: 3_600_000 })
+        res.redirect( '/user' )
+    }
 });
 
 app.get( '/user'
 , async( req: Request, res: Response )=>{
-    // res.render( 'user', { title: 'User', userName: user? });
-    res.render( 'user', { title: 'User', userName: '?' });
+    const username = req.cookies.username
+    res.render( 'user', { title: 'User', userName: username });
 });
 
-app.listen( 
+app.listen(
     port
 ,   () => {
         console.log( `[server]: Server is running at http://localhost:${port}` );
 });
-  
+
